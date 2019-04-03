@@ -1,5 +1,6 @@
 package src.com.manastaneja.hackernews;
 
+import android.os.AsyncTask;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 
@@ -10,54 +11,46 @@ import java.io.Reader;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity {
 
-    protected String baseURL;
-    protected String topStoriesURL;
-    protected String newStoriesURL;
-    protected String bestStoriesURL;
-    protected StringBuilder content;
+    private AsyncTask at;
+    protected RetrieveFeedTask rft;
+    private static ArrayList<Integer> content3;
+    private static ArrayList contentJSON;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        baseURL = "https://hacker-news.firebaseio.com/v0/";
-        topStoriesURL = "topstories.json?print=pretty";
-        newStoriesURL = "newstories.json?print=pretty";
-        bestStoriesURL = "beststories.json?print=pretty";
+        String[] urls = {"https://hacker-news.firebaseio.com/v0/",
+                         "topstories.json?print=pretty",
+                         "newstories.json?print=pretty",
+                         "beststories.json?print=pretty"};
 
-        try {
-            URL url = new URL(baseURL + topStoriesURL);
-            HttpURLConnection con = (HttpURLConnection) url.openConnection();
-            con.setRequestMethod("GET");
+        content3 = new ArrayList<Integer>();
+        new RetrieveFeedTask().execute(urls);
+    }
 
-            if (con.getHeaderField("Content-Type").equals("application/json")) {
-                Reader streamReader;
+    public void storyGetter(ArrayList<Integer> intArray) {
+        String[] storyURLs = new String[50];
 
-                if (con.getResponseCode() > 299) {
-                    streamReader = new InputStreamReader(con.getErrorStream());
-                } else {
-                    streamReader = new InputStreamReader(con.getInputStream());
-                }
-
-                BufferedReader in = new BufferedReader(streamReader);
-
-                String inputLine;
-                content = new StringBuilder();
-
-                while ((inputLine = in.readLine()) != null)
-                    content.append(inputLine);
-                in.close();
-                System.out.println("CONTENT TO BE PRINTED DIRECTLY AFTER THIS");
-                System.out.println(content);
-            }
-        } catch (MalformedURLException e) {
-            e.printStackTrace();
-        } catch (IOException ex) {
-            ex.printStackTrace();
+        int i = 0;
+        for (Integer integ: intArray) {
+            storyURLs[i] = ("https://hacker-news.firebaseio.com/v0/item/"+integ+".json?print=pretty");
+            i++;
         }
+
+        new RetrieveFeedTask().execute(storyURLs);
+    }
+
+    public static void setContentJSON (ArrayList arrayList) {
+        contentJSON = arrayList;
+    }
+
+    public static void setContent3(ArrayList<Integer> intArray){
+        content3 = intArray;
     }
 }
