@@ -15,14 +15,17 @@ import java.util.ArrayList;
 
 public class RetrieveStoryTask extends AsyncTask<String, Void, Integer> {
 
-    protected ArrayList content;
+    protected ArrayList content = new ArrayList();
 
     protected Integer doInBackground(String... urls) {
         try {
             for (String str: urls){
                 getStoryData(str);
             }
-            MainActivity.setContentJSON(content);
+            for (Object obj : content) {
+                System.out.println("BIG CHUNGUS: " + obj);
+            }
+            //MainActivity.setContentJSON(content);
             return 0;
         } catch (StoryFailureException e) {
             e.customPrintStackTrace();
@@ -48,7 +51,6 @@ public class RetrieveStoryTask extends AsyncTask<String, Void, Integer> {
             BufferedReader in = new BufferedReader(streamReader);
 
             String inputLine;
-            content = new ArrayList<>();
 
             while ((inputLine = in.readLine()) != null)
                 content.add(inputLine);
