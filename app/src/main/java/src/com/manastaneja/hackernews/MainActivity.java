@@ -23,6 +23,8 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 
+import java.util.concurrent.TimeUnit;
+
 public class MainActivity extends AppCompatActivity {
 
     protected static AsyncTask rft;
@@ -51,7 +53,7 @@ public class MainActivity extends AppCompatActivity {
         rft = new RetrieveFeedTask(this).execute(urls);
     }
 
-    public static void storyGetter(ArrayList<Integer> intArray) {
+    public static void storyLinkMaker(ArrayList<Integer> intArray) {
         int i = 0;
         for (Integer integ: intArray) {
             storyURLs[i] = ("https://hacker-news.firebaseio.com/v0/item/"+integ+".json?print=pretty");
@@ -59,11 +61,11 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    public static void seeContent3(){
+    /*public static void seeContent3(){
         for (Integer integ: content3) {
             System.out.println("Testing content3: "+integ);
         }
-    }
+    }*/
 
     public static class RetrieveFeedTask extends AsyncTask<String, Void, String[]> {
         protected StringBuilder content;
@@ -79,7 +81,12 @@ public class MainActivity extends AppCompatActivity {
         protected void onPostExecute(String[] s) {
             //super.onPostExecute(s);
             rst = new RetrieveStoryTask().execute(storyURLs);
-            while (rst.getStatus() == Status.PENDING || rst.getStatus() == Status.FINISHED) {
+            try {
+                TimeUnit.MILLISECONDS.sleep(50); //trying to avoid wait & notify, so quick pause to make sure contentJSON is populated
+            } catch (InterruptedException ie) {
+                ie.printStackTrace();
+            }
+            while ((rst.getStatus() == Status.PENDING || rst.getStatus() == Status.FINISHED) & !contentJSON.isEmpty()) {
                 for (JSONObject obj : contentJSON) {
                     try {
                         CardView cv = new CardView(activityReference.get());
@@ -107,7 +114,7 @@ public class MainActivity extends AppCompatActivity {
                     content3.add(Integer.parseInt(str));
                 }
 
-                storyGetter(content3);
+                storyLinkMaker(content3);
 
                 //System.out.println(content3.size());
 
@@ -187,8 +194,9 @@ public class MainActivity extends AppCompatActivity {
                 if (con.getResponseCode() > 299) {
                     streamReader = new InputStreamReader(con.getErrorStream());
                     throw new StoryFailureException("Could Not Get Story Data");
-                } else
+                } else {
                     streamReader = new InputStreamReader(con.getInputStream());
+                }
 
                 BufferedReader in = new BufferedReader(streamReader);
 
