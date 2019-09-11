@@ -210,6 +210,7 @@ public class MainActivity extends AppCompatActivity {
                 try {
                     actualJSON = new JSONObject(tempJSON.toString());
                     contentJSON.add(actualJSON);
+                    //TODO: try implementing the CardView generation in RFT OnPostExecute here instead using actualJSON
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
