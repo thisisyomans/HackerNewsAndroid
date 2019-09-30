@@ -1,56 +1,66 @@
 package src.com.manastaneja.hackernews;
 
 import android.content.Context;
-import android.os.AsyncTask;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.CardView;
+import android.widget.LinearLayout;
 import android.widget.ScrollView;
-import android.widget.TextClock;
 import android.widget.TextView;
+import android.view.Gravity;
+import android.graphics.Color;
+import android.view.ViewGroup;
+import android.view.View;
+import android.graphics.Typeface;
+import android.content.Intent;
+import android.net.Uri;
 
-import org.json.JSONArray;
+import com.android.volley.Request;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.JsonObjectRequest;
+import com.android.volley.RequestQueue;
+import com.android.volley.toolbox.StringRequest;
+import com.android.volley.toolbox.Volley;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.Reader;
-import java.lang.ref.WeakReference;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.ArrayList;
-
-import java.util.concurrent.TimeUnit;
 
 public class MainActivity extends AppCompatActivity {
 
-    protected static AsyncTask rft;
-    protected static AsyncTask rst;
+    private static String[] urls;
     private static ArrayList<Integer> content3;
     private static String[] storyURLs;
-    private static ArrayList<JSONObject> contentJSON;
-    private static ScrollView sv;
+    private ScrollView sv;
+    private LinearLayout ll;
+    private RequestQueue mRequestQueue;
+    Context context;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        String[] urls = {"https://hacker-news.firebaseio.com/v0/",
-                         "topstories.json?print=pretty",
-                         "newstories.json?print=pretty",
-                         "beststories.json?print=pretty"};
+        context = getApplicationContext();
+
+        mRequestQueue = Volley.newRequestQueue(context);
+
+        urls = new String[]{"https://hacker-news.firebaseio.com/v0/",
+                "topstories.json?print=pretty",
+                "newstories.json?print=pretty",
+                "beststories.json?print=pretty"};
 
         sv = (ScrollView) findViewById(R.id.storiesView);
+        ll = (LinearLayout) findViewById(R.id.linLay);
+        ll.setPadding(25, 0, 25, 0);
 
-        contentJSON = new ArrayList<JSONObject>();
         storyURLs = new String[500];
         content3 = new ArrayList<Integer>();
 
-        rft = new RetrieveFeedTask(this).execute(urls);
+        //rft = new RetrieveFeedTask().execute(urls);
+        GetStoryIndices();
     }
 
     public static void storyLinkMaker(ArrayList<Integer> intArray) {
@@ -67,48 +77,18 @@ public class MainActivity extends AppCompatActivity {
         }
     }*/
 
-    public static class RetrieveFeedTask extends AsyncTask<String, Void, String[]> {
-        protected StringBuilder content;
-        protected String[] content2;
+    private void GetStoryIndices() {
 
-        private static WeakReference<MainActivity> activityReference;
+        StringRequest mStringRequest = new StringRequest(Request.Method.GET, urls[0] + urls[2], new Response.Listener<String>() {
 
-        public RetrieveFeedTask(MainActivity activity) {
-            activityReference = new WeakReference<>(activity);
-        }
+            @Override
+            public void onResponse(String response) {
+                //System.out.println("ARRAY OF STORY NUMBERS: " + response);
 
-        @Override
-        protected void onPostExecute(String[] s) {
-            //super.onPostExecute(s);
-            rst = new RetrieveStoryTask().execute(storyURLs);
-            try {
-                TimeUnit.MILLISECONDS.sleep(50); //trying to avoid wait & notify, so quick pause to make sure contentJSON is populated
-            } catch (InterruptedException ie) {
-                ie.printStackTrace();
-            }
-            while ((rst.getStatus() == Status.PENDING || rst.getStatus() == Status.FINISHED) & !contentJSON.isEmpty()) {
-                for (JSONObject obj : contentJSON) {
-                    try {
-                        CardView cv = new CardView(activityReference.get());
-                        TextView tv1 = new TextView(activityReference.get());
-                        tv1.setText(obj.getString("title"));
-                        cv.addView(tv1);
-                        sv.addView(cv);
-                    } catch (JSONException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-        }
-
-        @Override
-        protected String[] doInBackground(String... urls) {
-            try {
-                getStories(urls[0] + urls[2]);
-
-                content2 = content.toString().split(", ");
+                String[] content2;
+                content2 = response.split(", ");
                 content2[0] = content2[0].substring(2);
-                content2[content2.length - 1] = content2[content2.length - 1].substring(0, content2[content2.length - 1].length() - 2);
+                content2[content2.length - 1] = content2[content2.length - 1].substring(0, content2[content2.length - 1].length() - 3);
 
                 for (String str: content2) {
                     content3.add(Integer.parseInt(str));
@@ -116,112 +96,112 @@ public class MainActivity extends AppCompatActivity {
 
                 storyLinkMaker(content3);
 
-                //System.out.println(content3.size());
+                //System.out.println("ARRAY OF STORY URLS: " + storyURLs.length);
+                GetStories();
 
-            } catch (StoryFailureException e) {
-                e.customPrintStackTrace();
             }
-            return content2;
-        }
-
-        private void getStories(String currentURL) throws StoryFailureException {
-            try {
-                URL url = new URL(currentURL);
-                HttpURLConnection con = (HttpURLConnection) url.openConnection();
-                con.setRequestMethod("GET");
-                con.setRequestProperty("Content-Type", "application/json");
-                //con.connect();
-
-                Reader streamReader;
-
-                if (con.getResponseCode() > 299) {
-                    streamReader = new InputStreamReader(con.getErrorStream());
-                    throw new StoryFailureException("Could Not Get Story Feed");
-                } else
-                    streamReader = new InputStreamReader(con.getInputStream());
-
-                BufferedReader in = new BufferedReader(streamReader);
-
-                String inputLine;
-                content = new StringBuilder();
-
-                while ((inputLine = in.readLine()) != null)
-                    content.append(inputLine);
-                in.close();
-                System.out.println("CONTENT TO BE PRINTED DIRECTLY AFTER THIS");
-                System.out.println(content);
-            } catch (MalformedURLException e) {
-                e.printStackTrace();
-            } catch (IOException ex) {
-                ex.printStackTrace();
+        }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                System.out.println("Error :" + error.toString());
             }
-        }
+        });
+
+        mRequestQueue.add(mStringRequest);
     }
 
-    public static class RetrieveStoryTask extends AsyncTask<String, Void, Integer> {
+    private void GetStories() {
+        for (String url : storyURLs) {
+            JsonObjectRequest mJsonObjectRequest = new JsonObjectRequest(Request.Method.GET, url, null, new Response.Listener<JSONObject>() {
 
-        protected Integer doInBackground(String... urls) {
-            try {
-                /*if (rft.getStatus() == Status.FINISHED) {
-                    rft.cancel(true);
-                }*/
-                rft.cancel(true);
-                //System.out.println("Stories ArrayList: "+storyURLs.length);
-                for (String str: urls){
-                    getStoryData(str);
+                @Override
+                public void onResponse(final JSONObject jsonResponse) {
+                    //System.out.println(response.toString());
+                    try {
+                        CardView cv = new CardView(getApplicationContext());
+                        cv.setCardBackgroundColor(0x0000FF00);
+                        cv.setContentPadding(25, 50, 25, 50);
+                        cv.setCardElevation(4);
+                        //cv.setPadding(20, 50, 20, 50);
+
+                        LinearLayout.LayoutParams cardViewParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                        cv.setLayoutParams(cardViewParams);
+                        ViewGroup.MarginLayoutParams cardViewMarginParams = (ViewGroup.MarginLayoutParams) cv.getLayoutParams();
+                        cardViewMarginParams.setMargins(0, 30, 0, 30);
+                        cv.requestLayout();  //Dont forget this line
+
+                        TextView tv1 = new TextView(getApplicationContext());
+                        if (jsonResponse.getString("title").equals(""))
+                            tv1.setText("No Title");
+                        else
+                            tv1.setText(jsonResponse.getString("title"));
+                        tv1.setGravity(Gravity.CENTER_HORIZONTAL);
+                        tv1.setTextColor(Color.rgb(255, 255, 255));
+                        tv1.setTextSize(18);
+                        Typeface face = Typeface.createFromAsset(getAssets(),
+                                "fonts/sourcecodeproregular.ttf");
+                        tv1.setTypeface(face);
+
+                        //TODO: add author name in new textview within card below title
+                        /*TextView tv2 = new TextView(getApplicationContext());
+                        if (response.getString("by").equals(""))
+                            tv2.setText("Anonymous");
+                        else
+                            tv2.setText(response.getString("by"));
+                        tv2.setGravity(Gravity.CENTER_HORIZONTAL);
+                        tv2.setTextColor(Color.rgb(200, 200, 200));*/
+
+                        LinearLayout ll2 = new LinearLayout(getApplicationContext());
+                        ll2.setGravity(Gravity.CENTER);
+                        ll2.addView(tv1);
+                        //ll2.addView(tv2);
+
+                        cv.addView(ll2);
+
+                        cv.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View view) {
+                                String url;
+                                try {
+                                    url = jsonResponse.getString("url");
+                                } catch (JSONException e) {
+                                    System.out.println(e);
+                                    url = "";
+                                }
+                                Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+                                startActivity(browserIntent);
+                            }
+                        });
+
+                        ll.addView(cv);
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
                 }
-                /*for (Object obj : content) {
-                    System.out.println("BIG CHUNGUS: " + obj);
-                }*/
-                System.out.println("JSON ArrayList: "+contentJSON.size());
-                System.out.println("JSON ArrayList Test: "+contentJSON.get(0));
-                return 0;
-            } catch (StoryFailureException e) {
-                e.customPrintStackTrace();
-                return 1;
-            }
+            }, new Response.ErrorListener() {
+
+                @Override
+                public void onErrorResponse(VolleyError error) {
+                    System.out.println("Error :" + error.toString());
+                }
+            });
+
+            mRequestQueue.add(mJsonObjectRequest);
         }
+        /*JsonObjectRequest mJsonObjectRequest = new JsonObjectRequest(Request.Method.GET, storyURLs[0], null, new Response.Listener<JSONObject>() {
 
-        private void getStoryData(String currentURL) throws StoryFailureException {
-            try {
-                URL url = new URL(currentURL);
-                HttpURLConnection con = (HttpURLConnection) url.openConnection();
-                con.setRequestMethod("GET");
-                con.setRequestProperty("Content-Type", "application/json");
-
-                Reader streamReader;
-
-                if (con.getResponseCode() > 299) {
-                    streamReader = new InputStreamReader(con.getErrorStream());
-                    throw new StoryFailureException("Could Not Get Story Data");
-                } else {
-                    streamReader = new InputStreamReader(con.getInputStream());
-                }
-
-                BufferedReader in = new BufferedReader(streamReader);
-
-                String inputLine;
-                StringBuilder tempJSON = new StringBuilder();
-                JSONObject actualJSON;
-
-                while ((inputLine = in.readLine()) != null) {
-                    tempJSON.append(inputLine);
-                }
-                try {
-                    actualJSON = new JSONObject(tempJSON.toString());
-                    contentJSON.add(actualJSON);
-                    //TODO: try implementing the CardView generation in RFT OnPostExecute here instead using actualJSON
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
-                in.close();
-                //System.out.println("CONTENT TO BE PRINTED DIRECTLY AFTER THIS 2");
-                //System.out.println(content);
-            } catch (MalformedURLException e) {
-                e.printStackTrace();
-            } catch (IOException ex) {
-                ex.printStackTrace();
+            @Override
+            public void onResponse(JSONObject response) {
+                System.out.println("JSON OBJECT INDEX 0: " + response.toString());
             }
-        }
+        }, new Response.ErrorListener() {
+
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                System.out.println("Error :" + error.toString());
+            }
+        });
+
+        mRequestQueue.add(mJsonObjectRequest);*/
     }
 }

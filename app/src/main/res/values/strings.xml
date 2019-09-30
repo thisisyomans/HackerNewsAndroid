@@ -1,4 +1,5 @@
 <resources>
     <string name="app_name">Hacker News</string>
     <string name="appTitle">Hacker News</string>
+    <string name="signature">A Manas Taneja Production</string>
 </resources>
