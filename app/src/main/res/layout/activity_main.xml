@@ -22,7 +22,7 @@
         android:text="@string/appTitle"
         android:textColor="@android:color/white"
         android:textSize="38sp"
-        app:fontFamily="@font/sourcecodeproregular"
+        app:fontFamily="@fonts/sourcecodeproregular"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.5"
