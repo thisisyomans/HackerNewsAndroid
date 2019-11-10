@@ -60,7 +60,7 @@ public class MainActivity extends AppCompatActivity {
         content3 = new ArrayList<Integer>();
 
         //rft = new RetrieveFeedTask().execute(urls);
-        GetStoryIndices();
+        getStoryIndices();
     }
 
     public static void storyLinkMaker(ArrayList<Integer> intArray) {
@@ -77,7 +77,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }*/
 
-    private void GetStoryIndices() {
+    private void getStoryIndices() {
 
         StringRequest mStringRequest = new StringRequest(Request.Method.GET, urls[0] + urls[2], new Response.Listener<String>() {
 
@@ -97,7 +97,7 @@ public class MainActivity extends AppCompatActivity {
                 storyLinkMaker(content3);
 
                 //System.out.println("ARRAY OF STORY URLS: " + storyURLs.length);
-                GetStories();
+                getStories();
 
             }
         }, new Response.ErrorListener() {
@@ -110,7 +110,7 @@ public class MainActivity extends AppCompatActivity {
         mRequestQueue.add(mStringRequest);
     }
 
-    private void GetStories() {
+    private void getStories() {
         for (String url : storyURLs) {
             JsonObjectRequest mJsonObjectRequest = new JsonObjectRequest(Request.Method.GET, url, null, new Response.Listener<JSONObject>() {
 
